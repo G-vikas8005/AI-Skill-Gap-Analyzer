@@ -8,6 +8,8 @@ import resumeRoutes from "./routes/resumeRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 
 dotenv.config();
+console.log("JWT_SECRET =", process.env.JWT_SECRET);
+console.log("MONGO_URI =", process.env.MONGO_URI ? "Loaded" : "Missing");
 
 const app = express();
 
