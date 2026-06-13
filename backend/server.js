@@ -13,12 +13,10 @@ console.log("MONGO_URI =", process.env.MONGO_URI ? "Loaded" : "Missing");
 
 const app = express();
 
-/**
- * =========================
- * DATABASE CONNECTION
- * =========================
- */
-connectDB();
+const startServer = async () => {
+  await connectDB();
+};
+startServer();
 
 /**
  * =========================
