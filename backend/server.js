@@ -29,7 +29,7 @@ app.use(
   cors({
     origin:[ "http://localhost:5173",
              "https://ai-skill-gap-analyzer-frontend.onrender.com",
-            ]
+            ],
     credentials: true,
   })
 );
