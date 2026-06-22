@@ -27,7 +27,7 @@ startServer();
 // Enable CORS (frontend-backend communication)
 app.use(
   cors({
-    origin:[ "http://localhost:5173",
+    origin:[ 
              "https://ai-skill-gap-analyzer-frontend.onrender.com",
             ],
     credentials: true,
