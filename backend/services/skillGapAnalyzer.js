@@ -1,11 +1,20 @@
 import jobRoles from "../data/jobRoles.js";
 
-export const analyzeSkillGap = (
-  resumeSkills,
-  selectedRole
-) => {
+/**
+ * Normalize skill names
+ */
+const normalizeSkill = (skill) => {
+  return String(skill)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+};
+
+export const analyzeSkillGap = (resumeSkills = [], selectedRole = "") => {
   const roleData = jobRoles.find(
-    (job) => job.role === selectedRole
+    (job) =>
+      job.role.toLowerCase().trim() ===
+      selectedRole.toLowerCase().trim()
   );
 
   if (!roleData) {
@@ -14,34 +23,40 @@ export const analyzeSkillGap = (
       missingSkills: [],
       matchPercentage: 0,
       readinessLevel: "Unknown",
+      chartData: [],
     };
   }
 
-  const normalizedResumeSkills =
-    resumeSkills.map((skill) =>
-      skill.toLowerCase()
-    );
+  // Normalize resume skills
+  const normalizedResumeSkills = resumeSkills.map(normalizeSkill);
 
   const matchedSkills = [];
   const missingSkills = [];
+  const chartData = [];
 
   roleData.skills.forEach((skill) => {
-    if (
-      normalizedResumeSkills.includes(
-        skill.toLowerCase()
-      )
-    ) {
+    const normalizedRoleSkill = normalizeSkill(skill);
+
+    const found = normalizedResumeSkills.includes(normalizedRoleSkill);
+
+    if (found) {
       matchedSkills.push(skill);
     } else {
       missingSkills.push(skill);
     }
+
+    chartData.push({
+      skill,
+      value: found ? 100 : 20,
+    });
   });
 
-  const matchPercentage = Math.round(
-    (matchedSkills.length /
-      roleData.skills.length) *
-      100
-  );
+  const matchPercentage =
+    roleData.skills.length === 0
+      ? 0
+      : Math.round(
+          (matchedSkills.length / roleData.skills.length) * 100
+        );
 
   let readinessLevel = "Beginner";
 
@@ -58,5 +73,6 @@ export const analyzeSkillGap = (
     missingSkills,
     matchPercentage,
     readinessLevel,
+    chartData,
   };
 };

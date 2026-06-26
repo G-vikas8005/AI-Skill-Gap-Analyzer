@@ -18,8 +18,9 @@ export const analyzePDFLayout = async (filePath) => {
     const issues = [];
     const recommendations = [];
 
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    for (let pageNum = 1; pageNum <= pages; pageNum++) {
       const page = await pdf.getPage(pageNum);
+
       const content = await page.getTextContent();
 
       totalTextItems += content.items.length;
@@ -31,8 +32,13 @@ export const analyzePDFLayout = async (filePath) => {
 
         const fontSize = Math.round(item.transform[0]);
 
-        if (fontSize > 0) fontSizes.push(fontSize);
-        if (fontSize >= 16) hasLargeHeading = true;
+        if (fontSize > 0) {
+          fontSizes.push(fontSize);
+        }
+
+        if (fontSize >= 16) {
+          hasLargeHeading = true;
+        }
 
         xPositions.push(item.transform[4]);
       });
@@ -57,48 +63,25 @@ export const analyzePDFLayout = async (filePath) => {
 
     let atsScore = 100;
 
-    if (pages > 2) {
-      atsScore -= 10;
-      issues.push("Resume exceeds 2 pages.");
-      recommendations.push("Keep resume within 1-2 pages.");
-    }
-
-    if (hasMultipleColumns) {
-      atsScore -= 15;
-      issues.push("Multi-column layout detected.");
-      recommendations.push("Use single-column format.");
-    }
-
-    if (averageFontSize > 0 && averageFontSize < 10) {
-      atsScore -= 10;
-      issues.push("Font size is too small.");
-      recommendations.push("Use font size 10–12.");
-    }
-
-    if (!hasLargeHeading) {
-      atsScore -= 10;
-      issues.push("Section headings not clearly visible.");
-      recommendations.push("Use larger headings.");
-    }
-
-    if (totalTextItems < 100) {
-      atsScore -= 5;
-      issues.push("Resume content appears limited.");
-      recommendations.push("Add more experience/projects.");
-    }
-
-    if (atsScore < 0) atsScore = 0;
+        // Prevent negative score
+    atsScore = Math.max(0, Math.min(100, atsScore));
 
     return {
       atsScore,
       pages,
 
-      columns: hasMultipleColumns ? "Multiple" : "Single",
+      // IMPORTANT:
+      // Frontend expects a NUMBER (1 or 2), not "Single"/"Multiple"
+      columns: hasMultipleColumns ? 2 : 1,
 
-      fonts: [`Average Size ${averageFontSize}px`],
+      fonts:
+        fontSizes.length > 0
+          ? [`Average Size ${averageFontSize}px`]
+          : [],
 
       marginStatus: "Standard",
 
+      // Future enhancements
       hasTables: false,
       hasImages: false,
       hasIcons: false,
@@ -107,20 +90,24 @@ export const analyzePDFLayout = async (filePath) => {
       issues,
       recommendations,
     };
-
   } catch (error) {
     console.error("PDF Layout Analysis Error:", error);
 
     return {
       atsScore: 0,
       pages: 0,
-      columns: "Unknown",
+
+      // Keep the same datatype even on error
+      columns: 1,
+
       fonts: [],
       marginStatus: "Unknown",
+
       hasTables: false,
       hasImages: false,
       hasIcons: false,
       hasColors: false,
+
       issues: ["Failed to analyze resume layout."],
       recommendations: [],
     };
