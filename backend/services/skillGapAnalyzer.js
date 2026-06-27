@@ -1,78 +1,157 @@
 import jobRoles from "../data/jobRoles.js";
 
 /**
- * Normalize skill names
+ * FAST NORMALIZER
  */
-const normalizeSkill = (skill) => {
-  return String(skill)
+const normalizeSkill = (skill = "") =>
+  String(skill)
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, "")
+    .replace(/[\s.\-_/]/g, "")
     .trim();
+
+/**
+ * SAFE MATCH ENGINE
+ */
+const isSkillMatch = (resumeSkill, roleSkill) => {
+  const r = normalizeSkill(resumeSkill);
+  const t = normalizeSkill(roleSkill);
+
+  return r === t || r.includes(t) || t.includes(r);
 };
 
-export const analyzeSkillGap = (resumeSkills = [], selectedRole = "") => {
-  const roleData = jobRoles.find(
-    (job) =>
-      job.role.toLowerCase().trim() ===
-      selectedRole.toLowerCase().trim()
-  );
+/**
+ * MAIN SKILL GAP ANALYZER (FIXED + DEBUG SAFE)
+ */
+export const analyzeSkillGap = (resumeSkills, selectedRole) => {
+  try {
+    console.log("🟡 Skill Gap Analyzer Started");
+    console.log("Role:", selectedRole);
 
-  if (!roleData) {
+    const safeResumeSkills = Array.isArray(resumeSkills)
+      ? resumeSkills
+      : [];
+
+    const roleData = jobRoles.find(
+      (job) =>
+        job.role?.toLowerCase().trim() ===
+        (selectedRole || "").toLowerCase().trim()
+    );
+
+    if (!roleData) {
+      console.warn("⚠️ Role not found:", selectedRole);
+
+      return {
+        matchedSkills: [],
+        missingSkills: [],
+        matchPercentage: 0,
+        readinessLevel: "Unknown",
+        confidenceScore: 0,
+        chartData: [],
+      };
+    }
+
+    /**
+     * 🔥 FIX: use correct fields
+     */
+    const mustHave = Array.isArray(roleData.mustHave)
+      ? roleData.mustHave
+      : [];
+
+    const goodToHave = Array.isArray(roleData.goodToHave)
+      ? roleData.goodToHave
+      : [];
+
+    const allSkills = [...mustHave, ...goodToHave];
+
+    const matchedSkills = [];
+    const missingSkills = [];
+    const chartData = [];
+
+    /**
+     * =========================
+     * MUST HAVE (HIGH WEIGHT)
+     * =========================
+     */
+    mustHave.forEach((skill, index) => {
+      const found = safeResumeSkills.some((r) =>
+        isSkillMatch(r, skill)
+      );
+
+      if (found) matchedSkills.push(skill);
+      else missingSkills.push(skill);
+
+      chartData.push({
+        skill,
+        value: found ? 1 : 0,
+        importance: 10 - index, // higher weight
+      });
+    });
+
+    /**
+     * =========================
+     * GOOD TO HAVE (LOW WEIGHT)
+     * =========================
+     */
+    goodToHave.forEach((skill, index) => {
+      const found = safeResumeSkills.some((r) =>
+        isSkillMatch(r, skill)
+      );
+
+      if (found) matchedSkills.push(skill);
+
+      chartData.push({
+        skill,
+        value: found ? 1 : 0,
+        importance: 5 - index, // lower weight
+      });
+    });
+
+    const totalSkills = allSkills.length;
+
+    const matchPercentage =
+      totalSkills === 0
+        ? 0
+        : Math.round((matchedSkills.length / totalSkills) * 100);
+
+    const confidenceScore = Math.min(
+      100,
+      Math.round(
+        (matchedSkills.length * 100) /
+          (safeResumeSkills.length || 1)
+      )
+    );
+
+    /**
+     * READINESS MODEL (IMPROVED)
+     */
+    let readinessLevel = "Beginner";
+
+    if (matchPercentage >= 85) {
+      readinessLevel = "Job Ready";
+    } else if (matchPercentage >= 65) {
+      readinessLevel = "Intermediate";
+    } else if (matchPercentage >= 40) {
+      readinessLevel = "Learning";
+    }
+
+    return {
+      matchedSkills,
+      missingSkills,
+      matchPercentage,
+      readinessLevel,
+      confidenceScore,
+      chartData,
+    };
+  } catch (err) {
+    console.error("❌ Skill Gap Analyzer Crash:", err);
+
     return {
       matchedSkills: [],
       missingSkills: [],
       matchPercentage: 0,
-      readinessLevel: "Unknown",
+      readinessLevel: "Error",
+      confidenceScore: 0,
       chartData: [],
     };
   }
-
-  // Normalize resume skills
-  const normalizedResumeSkills = resumeSkills.map(normalizeSkill);
-
-  const matchedSkills = [];
-  const missingSkills = [];
-  const chartData = [];
-
-  roleData.skills.forEach((skill) => {
-    const normalizedRoleSkill = normalizeSkill(skill);
-
-    const found = normalizedResumeSkills.includes(normalizedRoleSkill);
-
-    if (found) {
-      matchedSkills.push(skill);
-    } else {
-      missingSkills.push(skill);
-    }
-
-    chartData.push({
-      skill,
-      value: found ? 100 : 20,
-    });
-  });
-
-  const matchPercentage =
-    roleData.skills.length === 0
-      ? 0
-      : Math.round(
-          (matchedSkills.length / roleData.skills.length) * 100
-        );
-
-  let readinessLevel = "Beginner";
-
-  if (matchPercentage >= 80) {
-    readinessLevel = "Job Ready";
-  } else if (matchPercentage >= 60) {
-    readinessLevel = "Intermediate";
-  } else if (matchPercentage >= 40) {
-    readinessLevel = "Learning";
-  }
-
-  return {
-    matchedSkills,
-    missingSkills,
-    matchPercentage,
-    readinessLevel,
-    chartData,
-  };
 };

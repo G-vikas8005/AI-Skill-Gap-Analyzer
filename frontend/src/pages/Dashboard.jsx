@@ -21,43 +21,48 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
 
   const handleUpload = async () => {
-    if (!resume || !role) {
-      alert("Upload resume + select role");
-      return;
-    }
+  if (!resume || !role) {
+    alert("Upload resume + select role");
+    return;
+  }
 
-    const formData = new FormData();
-    formData.append("resume", resume);
-    formData.append("selectedRole", role);
+  const formData = new FormData();
+  formData.append("resume", resume);
+  formData.append("selectedRole", role);
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const res = await API.post("/resume/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+    const res = await API.post("/resume/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
 
-      const {
-        structuredResume,
-        layoutAnalysis,
-        skillGapAnalysis,
-        extractedText,
-      } = res.data;
+    const {
+      structuredResume,
+      layoutAnalysis,
+      skillGapAnalysis,
+      extractedText,
+      aiAnalysis, // Extract this from backend response
+    } = res.data;
 
-      localStorage.setItem("selectedRole", role);
-      localStorage.setItem("structuredResume", JSON.stringify(structuredResume));
-      localStorage.setItem("layoutAnalysis", JSON.stringify(layoutAnalysis));
-      localStorage.setItem("skillGapAnalysis", JSON.stringify(skillGapAnalysis));
-      localStorage.setItem("resumeText", extractedText || "");
-      localStorage.setItem("aiAnalysis", JSON.stringify(res.data));
+    localStorage.setItem("selectedRole", role);
+    localStorage.setItem("structuredResume", JSON.stringify(structuredResume));
+    localStorage.setItem("layoutAnalysis", JSON.stringify(layoutAnalysis));
+    localStorage.setItem("skillGapAnalysis", JSON.stringify(skillGapAnalysis));
+    localStorage.setItem("resumeText", extractedText || "");
+    
+    // ✅ FIXED: Save the actual parsed AI JSON object
+    localStorage.setItem("aiAnalysis", JSON.stringify(aiAnalysis));
 
-      alert("Analysis complete 🚀");
-    } catch {
-      alert("Upload failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    alert("Analysis complete 🚀");
+  } catch (err) {
+    console.error(err);
+    alert("Upload failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="relative min-h-screen bg-[#FFF0E4] overflow-hidden">
